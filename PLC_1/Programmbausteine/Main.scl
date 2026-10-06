@@ -1,0 +1,621 @@
+﻿ORGANIZATION_BLOCK "Main"
+TITLE = "Main Program Sweep (Cycle)"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_TEMP 
+      Delay_active : Bool;
+   END_VAR
+
+
+BEGIN
+	"HMI_Bedienung_DB"();
+	"Signalläuchte_DB"();
+	
+	CASE "HMI_Zustand_DB".state OF
+	    0:  // Wartezustand
+	        IF "HMI_Zustand_DB".einschubachse_mode = TRUE THEN
+	            "HMI_Zustand_DB".state := 9;
+	        ELSIF "HMI_Zustand_DB".ref_mode = TRUE THEN
+	            "HMI_Zustand_DB".state := 10;
+	        ELSIF "HMI_Zustand_DB".jog_mode = TRUE THEN
+	            "HMI_Zustand_DB".state := 30;
+	        ELSIF "HMI_Zustand_DB".absolut_pos = TRUE THEN
+	            "HMI_Zustand_DB".state := 60;
+	        ELSIF "HMI_Zustand_DB".relativ_pos = TRUE THEN
+	            "HMI_Zustand_DB".state := 90;
+	        ELSIF "HMI_Zustand_DB".magazinieren = TRUE THEN
+	            "HMI_Zustand_DB".state := 0;
+	        ELSIF "HMI_Zustand_DB".abholen = TRUE THEN
+	            "HMI_Zustand_DB".state := 0;
+	        ELSE
+	            "HMI_Zustand_DB".jog_mode := FALSE;
+	            "HMI_Zustand_DB".absolut_pos := FALSE;
+	            "HMI_Zustand_DB".relativ_pos := FALSE;
+	            "HMI_Zustand_DB".magazinieren := FALSE;
+	            "HMI_Zustand_DB".abholen := FALSE;
+	            //Wenn kein Mode gewählt ist, werden Achsen disabled
+	            "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	            "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	        END_IF;
+	        
+	        ;
+	    1:  //ref Einschubachse
+	        //"HMI_Zustand_DB".Einschubachse_eingefahren := NOT ("di_EnableXYMovement");
+	        //"HMI_Zustand_DB".einschubachse_mode := FALSE; //nach dem Einfahren der Einschubahcse wird dieser Mode beendet.
+	        //"HMI_Zustand_DB".state := 0;
+	        IF "Controll_horizontale Achse_DB".AxisEnabled = FALSE AND "Controll_vertikale Achse_DB".AxisEnabled = FALSE THEN
+	            "MC_POWER_DB"(Axis := "PosControl_Einschubachse",
+	                          Enable := TRUE);
+	            "HMI_Zustand_DB".state := 2;
+	        ELSE
+	            "HMI_Zustand_DB".state := 0;
+	        END_IF;
+	        ;
+	        
+	    2:
+	        IF "MC_POWER_DB".Error = FALSE THEN
+	            "MC_HOME_DB"(Axis := "PosControl_Einschubachse",
+	                    Execute := TRUE,
+	                    Position := 0,
+	                    Mode := 3);
+	            "HMI_Zustand_DB".state := 3;
+	        ELSE
+	            "HMI_Zustand_DB".state := 0;
+	        END_IF;
+	    3:
+	        IF "MC_HOME_DB".Done = TRUE THEN
+	            "MC_POWER_DB".Enable := FALSE;
+	            
+	            "HMI_Zustand_DB".state := 0;
+	        END_IF;
+	        
+	        ;
+	        
+	    9:
+	        "HMI_Zustand_DB".Einschubachse_eingefahren := NOT ("di_EnableXYMovement");
+	        "HMI_Zustand_DB".einschubachse_mode := FALSE; //nach dem Einfahren der Einschubahcse wird dieser Mode beendet.
+	        "HMI_Zustand_DB".state := 0;
+	        ;
+	    10://---------------------------------------------------
+	        // 10-14 Ref vertikale Achse
+	        IF "Controll_vertikale Achse_DB".AxisRef = TRUE THEN    //Überprüft ob Achse schon referenziert ist
+	            "HMI_Zustand_DB".state := 20;
+	        ELSE
+	            "Controll_vertikale Achse_DB".AxisEnabled := FALSE;
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".ModePos := 4; //Mode zum referenzieren
+	            "HMI_Zustand_DB".state := 11;
+	        END_IF;
+	        ;
+	    11:  //check if z-Axis retracted
+	        IF "di_EnableXYMovement" = FALSE THEN
+	            "Controll_vertikale Achse_DB".EnableAxis := TRUE;
+	            // Verzögerung um Achsen zu Enablen
+	            "Delay_EnableAxis".TON(IN := TRUE,
+	                                   PT := "Main_DB".Delay_Time);
+	            "HMI_Zustand_DB".state := 12;
+	        ELSE
+	            "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	            // Textausgabe: z-Einschub nicht eingefahren. Um zu Referenzieren bitte Einschubachse einfahren.
+	            "HMI_Zustand_DB".state := 29;
+	        END_IF;
+	        ;
+	        
+	    12:
+	        IF "Delay_EnableAxis".Q = TRUE THEN
+	            "HMI_Zustand_DB".state := 13;
+	            "Delay_EnableAxis".IN := FALSE;
+	        END_IF;
+	        ;
+	        
+	    13:  // ref vertical Axis 
+	        IF "Controll_vertikale Achse_DB".AxisEnabled = TRUE THEN
+	            "Controll_vertikale Achse_DB".Negative := TRUE; // Verfahrensrichtung
+	            "Controll_vertikale Achse_DB".ExecuteMode := TRUE;
+	            "HMI_Zustand_DB".state := 14;
+	        ELSE
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	            // Textausgabe: Fehler an der vertikalen Achse. Kann nicht enabled werden. Bitte Restebutten drücken.
+	            "HMI_Zustand_DB".state := 15; // Fehlerzustand: Error muss quitiert werden
+	        END_IF;
+	        ;
+	    14:
+	        IF "Controll_vertikale Achse_DB".AxisRef = TRUE THEN
+	            "Controll_vertikale Achse_DB".Negative := FALSE;
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	            "HMI_Zustand_DB".AxisRef_v := "Controll_vertikale Achse_DB".AxisRef;
+	            // Textausgabe: Vertikale Ache referenziert.
+	            "HMI_Zustand_DB".state := 20;
+	        ELSIF "Controll_vertikale Achse_DB".AxisEnabled = FALSE THEN
+	            "HMI_Zustand_DB".state := 15;
+	        END_IF;
+	        ;
+	    15: // Fehlerzustand: Error muss quitiert werden
+	        IF "Controll_vertikale Achse_DB".AxisError = TRUE THEN
+	            // Textausgabe: Fehler an der vertikalen Achse. Kann nicht enabled werden. Bitte Restebutten drücken.
+	            "reset_led" := TRUE;
+	            "Controll_vertikale Achse_DB".AckError := "reset";
+	        ELSE
+	            "reset_led" := FALSE;
+	            "HMI_Zustand_DB".state := 29;
+	        END_IF;
+	        ;
+	        
+	        
+	        
+	    20:  //20-24 Ref horizontale Achse
+	        IF "Controll_horizontale Achse_DB".AxisRef = TRUE THEN  //Überprüft ob Achse schon referenziert ist
+	            "HMI_Zustand_DB".state := 29;
+	        ELSE
+	            "Controll_horizontale Achse_DB".ModePos := 4; // Mode zum referenzieren
+	            "HMI_Zustand_DB".state := 21;
+	        END_IF;
+	        ;
+	    21:  //check if z-Axis retracted
+	        IF "di_EnableXYMovement" = FALSE THEN
+	            "Controll_horizontale Achse_DB".EnableAxis := TRUE;
+	            // Verzögerung um Achsen zu Enablen
+	            "Delay_EnableAxis".TON(IN := TRUE,
+	                                   PT := "Main_DB".Delay_Time);
+	            "HMI_Zustand_DB".state := 22;
+	        ELSE
+	            "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	            // Textausgabe: z-Einschub nicht eingefahren. Um zu Referenzieren bitte Einschubachse einfahren.
+	            "HMI_Zustand_DB".state := 29;
+	        END_IF;
+	        ;
+	        
+	    22:
+	        IF "Delay_EnableAxis".Q = TRUE THEN
+	            "HMI_Zustand_DB".state := 23;
+	            "Delay_EnableAxis".IN := FALSE;
+	        END_IF;
+	        ;
+	        
+	    23:
+	        IF "Controll_horizontale Achse_DB".AxisEnabled = TRUE THEN
+	            "Controll_horizontale Achse_DB".Negative := TRUE; // Verfahrensrichtung
+	            "Controll_horizontale Achse_DB".ExecuteMode := TRUE;
+	            
+	            "HMI_Zustand_DB".state := 24;
+	        ELSE
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	            // Textausgabe: Fehler an der horizontale Achse. Kann nicht enabled werden. Bitte Restebutten drücken.
+	            "HMI_Zustand_DB".state := 25;    // Fehlerzustand: Error muss quitiert werden
+	        END_IF;
+	        ;
+	    24:
+	        IF "Controll_horizontale Achse_DB".AxisRef = TRUE THEN
+	            "Controll_horizontale Achse_DB".Negative := FALSE;
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	            "HMI_Zustand_DB".AxisRef_h := "Controll_horizontale Achse_DB".AxisRef;
+	            // Textausgabe: Horizontale Ache referenziert.
+	            "HMI_Zustand_DB".state := 29;
+	        ELSIF "Controll_horizontale Achse_DB".AxisEnabled = FALSE THEN
+	            "HMI_Zustand_DB".state := 25;
+	        END_IF;
+	        ;
+	        
+	    25: // Fehlerzustand: Error muss quitiert werden
+	        IF "Controll_horizontale Achse_DB".AxisError = TRUE THEN
+	            // Textausgabe: Fehler an der horizontale Achse. Kann nicht enabled werden. Bitte Restebutten drücken.
+	            "reset_led" := TRUE;
+	            "Controll_horizontale Achse_DB".AckError := "reset";
+	        ELSE
+	            "reset_led" := FALSE;
+	            "HMI_Zustand_DB".state := 29;
+	        END_IF;
+	        ;
+	        
+	    29: //Endzusatnd True wenn alle Achsen referenziert sind
+	        IF "Controll_horizontale Achse_DB".AxisRef = TRUE AND "Controll_vertikale Achse_DB".AxisRef = TRUE THEN
+	            "HMI_Zustand_DB".AxisRef_all := TRUE;
+	        ELSE
+	            "HMI_Zustand_DB".AxisRef_all := FALSE;
+	        END_IF;
+	        "HMI_Zustand_DB".ref_mode := FALSE; // nach dem Referenzieren wird dieser Mode beendet.
+	        "HMI_Zustand_DB".state := 0;
+	        ;
+	        
+	        
+	        //----------------------------------------------------------------        
+	    30: // Jog Mode 30-39
+	        IF "HMI_Steuerung_DB".EnableSwitch = TRUE THEN     // Warte bis Enable Switch betätigt wird
+	            "HMI_Zustand_DB".state := 31;
+	        ELSE
+	            "HMI_Zustand_DB".state := 39;
+	        END_IF;
+	        
+	        ;
+	        
+	    31: //Jog Mode
+	        IF "di_EnableXYMovement" = FALSE AND "Controll_horizontale Achse_DB".AxisEnabled = FALSE AND "Controll_vertikale Achse_DB".AxisEnabled = FALSE THEN
+	            "Controll_vertikale Achse_DB".ModePos := 7;
+	            "Controll_horizontale Achse_DB".ModePos := 7;
+	            "Controll_vertikale Achse_DB".EnableAxis := TRUE;
+	            "Controll_horizontale Achse_DB".EnableAxis := TRUE;
+	            // Verzögerung um Achsen zu Enablen
+	            "Delay_EnableAxis".TON(IN := TRUE,
+	                                   PT := "Main_DB".Delay_Time);
+	            "HMI_Zustand_DB".state := 32;
+	        ELSIF "di_EnableXYMovement" = FALSE AND "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE THEN
+	            "Controll_vertikale Achse_DB".ModePos := 7;
+	            "Controll_horizontale Achse_DB".ModePos := 7;
+	            "HMI_Zustand_DB".state := 33;
+	        ELSE
+	            "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	            "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	            // Textausgabe: z-Einschub nicht eingefahren. Für Bewegungen der Achsen bitte Einschubachse einfahren.
+	            "HMI_Zustand_DB".state := 39;
+	        END_IF;
+	        ;
+	        
+	    32:
+	        IF "Delay_EnableAxis".Q = TRUE THEN
+	            "HMI_Zustand_DB".state := 33;
+	            "Delay_EnableAxis".IN := FALSE;
+	        END_IF;
+	        ;
+	        
+	    33:
+	        IF "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE AND "HMI_Steuerung_DB".EnableSwitch = TRUE THEN //Normalzusatnd, Achsen Jogen mit den Pfeilen an der HMI
+	            IF "HMI_Zustand_DB".ActPos_absoult_h <= 296.0 THEN
+	                "Controll_horizontale Achse_DB".Jog1 := "HMI_Steuerung_DB".jog_mode_rechts;
+	            ELSE
+	                "Controll_horizontale Achse_DB".Jog1 := FALSE;
+	            END_IF;
+	            IF "HMI_Zustand_DB".ActPos_absoult_h >= -2.0 THEN
+	                "Controll_horizontale Achse_DB".Jog2 := "HMI_Steuerung_DB".jog_mode_links;
+	            ELSE
+	                "Controll_horizontale Achse_DB".Jog2 := FALSE;
+	            END_IF;
+	            IF "HMI_Zustand_DB".ActPos_absoult_v <= 310.0 THEN
+	                "Controll_vertikale Achse_DB".Jog1 := "HMI_Steuerung_DB".jog_mode_hoch;
+	            ELSE
+	                "Controll_vertikale Achse_DB".Jog1 := FALSE;
+	            END_IF;
+	            IF "HMI_Zustand_DB".ActPos_absoult_v >= 0.0 THEN
+	                "Controll_vertikale Achse_DB".Jog2 := "HMI_Steuerung_DB".jog_mode_runter;
+	            ELSE
+	                "Controll_vertikale Achse_DB".Jog2 := FALSE;
+	            END_IF;
+	        ELSIF "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE AND "HMI_Steuerung_DB".EnableSwitch = FALSE THEN //Enableswitch wurde abgeschaltet, Achsen werden gesperrt
+	            "HMI_Zustand_DB".state := 39;
+	        ELSIF ("Controll_horizontale Achse_DB".AxisEnabled = FALSE OR "Controll_vertikale Achse_DB".AxisEnabled = FALSE) AND "HMI_Steuerung_DB".EnableSwitch = TRUE THEN   //Fehlerzustand
+	            "HMI_Steuerung_DB".EnableSwitch := FALSE;
+	            "Controll_horizontale Achse_DB".Jog1 := FALSE;
+	            "Controll_horizontale Achse_DB".Jog2 := FALSE;
+	            "Controll_vertikale Achse_DB".Jog1 := FALSE;
+	            "Controll_vertikale Achse_DB".Jog2 := FALSE;
+	            "HMI_Zustand_DB".state := 35;
+	        END_IF;
+	        ;
+	        
+	        
+	    35:
+	        IF "Controll_horizontale Achse_DB".AxisError = TRUE OR "Controll_vertikale Achse_DB".AxisError = TRUE THEN
+	            // Textausgabe: Fehler an den Achsen. Kann nicht enabled werden. Bitte Restebutten drücken.
+	            "reset_led" := TRUE;
+	            "Controll_horizontale Achse_DB".AckError := "reset";
+	            "Controll_vertikale Achse_DB".AckError := "reset";
+	        ELSE
+	            "reset_led" := FALSE;
+	            "HMI_Zustand_DB".state := 39;
+	        END_IF;
+	        ;
+	        
+	    39:
+	        "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	        "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	        "HMI_Steuerung_DB".EnableSwitch := FALSE;
+	        "HMI_Zustand_DB".state := 0;
+	        ;
+	        
+	    60: //----------------------------
+	        // 60-69 absolut Positioning
+	        IF "HMI_Steuerung_DB".EnableSwitch = TRUE THEN
+	            "HMI_Zustand_DB".state := 61;
+	        ELSE
+	            "HMI_Zustand_DB".state := 69;
+	            ;
+	        END_IF;
+	        ;
+	        
+	    61:
+	        //check if z-Axis retracted
+	        IF "di_EnableXYMovement" = FALSE AND "Controll_horizontale Achse_DB".AxisEnabled = FALSE AND "Controll_vertikale Achse_DB".AxisEnabled = FALSE THEN
+	            "Controll_horizontale Achse_DB".ModePos := 2;
+	            "Controll_vertikale Achse_DB".ModePos := 2;
+	            "Controll_horizontale Achse_DB".EnableAxis := TRUE;
+	            "Controll_vertikale Achse_DB".EnableAxis := TRUE;
+	            // Verzögerung um Achsen zu Enablen
+	            "Delay_EnableAxis".TON(IN := TRUE,
+	                                   PT := "Main_DB".Delay_Time);
+	            "HMI_Zustand_DB".state := 62;
+	        ELSIF "di_EnableXYMovement" = FALSE AND "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE THEN
+	            "Controll_horizontale Achse_DB".ModePos := 2;
+	            "Controll_vertikale Achse_DB".ModePos := 2;
+	            "HMI_Zustand_DB".state := 63;
+	        ELSE
+	            "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	            "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	            // Textausgabe: z-Einschub nicht eingefahren. Um zu Referenzieren bitte Einschubachse einfahren.
+	            "HMI_Zustand_DB".state := 69;
+	        END_IF;
+	        ;
+	        
+	    62:
+	        IF "Delay_EnableAxis".Q = TRUE THEN
+	            "HMI_Zustand_DB".state := 63;
+	            "Delay_EnableAxis".IN := FALSE;
+	        END_IF;
+	        ;
+	        
+	    63:
+	        IF "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE AND "HMI_Steuerung_DB".EnableSwitch = TRUE THEN //Normalzusatnd, Achsen absolut bewegen an der HMI
+	            "Controll_horizontale Achse_DB".Position := "HMI_Steuerung_DB".Pos_h / 1.0;   //Division notwenig wegen anpassung für die Positionskontrolle
+	            "Controll_horizontale Achse_DB".Velocity := "HMI_Steuerung_DB".Vel_absolut_h;
+	            "Controll_vertikale Achse_DB".Position := "HMI_Steuerung_DB".Pos_v / 1.0; //Division notwenig wegen anpassung für die Positionskontrolle
+	            "Controll_vertikale Achse_DB".Velocity := "HMI_Steuerung_DB".Vel_absolut_v;
+	            "HMI_Zustand_DB".state := 64;
+	        ELSIF "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE AND "HMI_Steuerung_DB".EnableSwitch = FALSE THEN //Enableswitch wurde abgeschaltet, Achsen werden gesperrt
+	                "HMI_Zustand_DB".state := 69;
+	        ELSIF ("Controll_horizontale Achse_DB".AxisEnabled = FALSE OR "Controll_vertikale Achse_DB".AxisEnabled = FALSE) AND "HMI_Steuerung_DB".EnableSwitch = TRUE THEN   //Fehlerzustand
+	                "HMI_Steuerung_DB".EnableSwitch := FALSE;
+	                "HMI_Zustand_DB".state := 66;
+	        END_IF;
+	        ;
+	        
+	    64:
+	        IF "HMI_Steuerung_DB".ExecuteMode = TRUE THEN
+	            "Controll_horizontale Achse_DB".IntermediateStop := TRUE;
+	            "Controll_vertikale Achse_DB".IntermediateStop := TRUE;
+	            IF "HMI_Steuerung_DB".Vel_h > 0 THEN
+	                "Controll_horizontale Achse_DB".ExecuteMode := TRUE;
+	                "HMI_Zustand_DB".state := 65;
+	            END_IF;
+	            IF "HMI_Steuerung_DB".Vel_v > 0 THEN
+	                "Controll_vertikale Achse_DB".ExecuteMode := TRUE;
+	                "HMI_Zustand_DB".state := 65;
+	            END_IF;
+	        ELSE
+	            "HMI_Zustand_DB".state := 63;
+	        END_IF
+	        ;
+	        
+	    65:
+	        IF "HMI_Steuerung_DB".Vel_h > 0 AND "HMI_Steuerung_DB".Vel_v = 0 AND "Controll_horizontale Achse_DB".AxisPosOk = TRUE THEN  //nur horizontale Achse wird verfahren
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "HMI_Zustand_DB".state := 63;
+	        ELSIF "HMI_Steuerung_DB".Vel_h = 0 AND "HMI_Steuerung_DB".Vel_v > 0 AND "Controll_vertikale Achse_DB".AxisPosOk = TRUE THEN //nur vertikale Achse wird verfahren
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "HMI_Zustand_DB".state := 63;
+	        ELSIF "HMI_Steuerung_DB".Vel_h > 0 AND "HMI_Steuerung_DB".Vel_v > 0 AND "Controll_vertikale Achse_DB".AxisPosOk = TRUE AND "Controll_horizontale Achse_DB".AxisPosOk = TRUE THEN    //beide achsen verden verfahren
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "HMI_Zustand_DB".state := 63;
+	        ELSIF "HMI_Steuerung_DB".StopMode = TRUE THEN   //HMI Stop Button wurde betätigt
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_horizontale Achse_DB".IntermediateStop := FALSE;
+	            "Controll_vertikale Achse_DB".IntermediateStop := FALSE;
+	            "HMI_Zustand_DB".state := 63;
+	        ELSIF "Controll_horizontale Achse_DB".AxisEnabled = FALSE OR "Controll_vertikale Achse_DB".AxisEnabled = FALSE THEN //Notaus wurde betätigt
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	            "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	            "HMI_Steuerung_DB".EnableSwitch := FALSE;
+	            "HMI_Zustand_DB".state := 66;
+	        END_IF
+	        
+	        ;
+	    66:
+	        IF "Controll_horizontale Achse_DB".AxisError = TRUE OR "Controll_vertikale Achse_DB".AxisError = TRUE THEN
+	            // Textausgabe: Fehler an den Achsen. Kann nicht enabled werden. Bitte Restebutten drücken.
+	            "reset_led" := TRUE;
+	            "Controll_horizontale Achse_DB".AckError := "reset";
+	            "Controll_vertikale Achse_DB".AckError := "reset";
+	        ELSE
+	            "reset_led" := FALSE;
+	            "HMI_Zustand_DB".state := 69;
+	        END_IF
+	        ;
+	    69:
+	        "Controll_horizontale Achse_DB".IntermediateStop := TRUE;
+	        "Controll_vertikale Achse_DB".IntermediateStop := TRUE;
+	        "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	        "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	        "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	        "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	        "HMI_Zustand_DB".state := 0;
+	        ;
+	        
+	    90: //-------------------------------------------------------------
+	        // 90-99 relativ Pos 
+	        IF "HMI_Steuerung_DB".EnableSwitch = TRUE THEN
+	            "HMI_Zustand_DB".state := 91;
+	        ELSE
+	            "HMI_Zustand_DB".state := 99;
+	            ;
+	        END_IF;
+	        ;
+	        
+	    91:
+	        //check if z-Axis retracted
+	        IF "di_EnableXYMovement" = FALSE AND "Controll_horizontale Achse_DB".AxisEnabled = FALSE AND "Controll_vertikale Achse_DB".AxisEnabled = FALSE THEN
+	            "Controll_horizontale Achse_DB".ModePos := 1;
+	            "Controll_vertikale Achse_DB".ModePos := 1;
+	            "Controll_horizontale Achse_DB".EnableAxis := TRUE;
+	            "Controll_vertikale Achse_DB".EnableAxis := TRUE;
+	            // Verzögerung um Achsen zu Enablen
+	            "Delay_EnableAxis".TON(IN := TRUE,
+	                                   PT := "Main_DB".Delay_Time);
+	            "HMI_Zustand_DB".state := 92;
+	        ELSIF "di_EnableXYMovement" = FALSE AND "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE THEN
+	            "Controll_horizontale Achse_DB".ModePos := 1;
+	            "Controll_vertikale Achse_DB".ModePos := 1;
+	            "HMI_Zustand_DB".state := 93;
+	        ELSE
+	            "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	            "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	            // Textausgabe: z-Einschub nicht eingefahren. Um zu Referenzieren bitte Einschubachse einfahren.
+	            "HMI_Zustand_DB".state := 99;
+	        END_IF;
+	        ;
+	        
+	    92:
+	        IF "Delay_EnableAxis".Q = TRUE THEN
+	            "HMI_Zustand_DB".state := 93;
+	            "Delay_EnableAxis".IN := FALSE;
+	        END_IF
+	        ;
+	        
+	    93:
+	        IF "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE AND "HMI_Steuerung_DB".EnableSwitch = TRUE THEN //Normalzusatnd, Achsen relativ bewegen an der HMI
+	            "Controll_horizontale Achse_DB".Velocity := "HMI_Steuerung_DB".Vel_absolut_h;
+	            "Controll_vertikale Achse_DB".Velocity := "HMI_Steuerung_DB".Vel_absolut_v;
+	            "HMI_Zustand_DB".state := 94;
+	        ELSIF "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE AND "HMI_Steuerung_DB".EnableSwitch = FALSE THEN //Enableswitch wurde abgeschaltet, Achsen werden gesperrt
+	            "HMI_Zustand_DB".state := 99;
+	        ELSIF ("Controll_horizontale Achse_DB".AxisEnabled = FALSE OR "Controll_vertikale Achse_DB".AxisEnabled = FALSE) AND "HMI_Steuerung_DB".EnableSwitch = TRUE THEN   //Fehlerzustand
+	            "HMI_Steuerung_DB".EnableSwitch := FALSE;
+	            "HMI_Zustand_DB".state := 96;
+	        END_IF
+	        ;
+	        
+	    94:
+	        IF "HMI_Steuerung_DB".relativ_hoch = FALSE AND "HMI_Steuerung_DB".relativ_runter = FALSE AND "HMI_Steuerung_DB".relativ_rechts = FALSE AND "HMI_Steuerung_DB".relativ_links = FALSE THEN
+	            "HMI_Zustand_DB".state := 93;
+	        ELSE
+	            // Inkremetalbewegung abhängig von gedrückenten Button
+	            "Controll_horizontale Achse_DB".IntermediateStop := TRUE;
+	            "Controll_vertikale Achse_DB".IntermediateStop := TRUE;
+	            IF "HMI_Steuerung_DB".relativ_hoch = TRUE AND "HMI_Steuerung_DB".Vel_v > 0 THEN
+	                "Controll_vertikale Achse_DB".Position := "HMI_Steuerung_DB".Inkrement_relativ / 2.0;   //Division notwenig wegen anpassung für die Positionskontrolle
+	                "Controll_vertikale Achse_DB".ExecuteMode := TRUE;
+	            END_IF;
+	            
+	            IF "HMI_Steuerung_DB".relativ_runter = TRUE AND "HMI_Steuerung_DB".Vel_v > 0 THEN
+	                "Controll_vertikale Achse_DB".Position := - ("HMI_Steuerung_DB".Inkrement_relativ / 2.0);   //Division notwenig wegen anpassung für die Positionskontrolle
+	                "Controll_vertikale Achse_DB".ExecuteMode := TRUE;
+	            END_IF;
+	            
+	            IF "HMI_Steuerung_DB".relativ_links = TRUE  AND "HMI_Steuerung_DB".Vel_h > 0 THEN
+	                "Controll_horizontale Achse_DB".Position := - ("HMI_Steuerung_DB".Inkrement_relativ / 2.0); //Division notwenig wegen anpassung für die Positionskontrolle
+	                "Controll_horizontale Achse_DB".ExecuteMode := TRUE;
+	            END_IF;
+	            
+	            IF "HMI_Steuerung_DB".relativ_rechts = TRUE AND "HMI_Steuerung_DB".Vel_h > 0 THEN
+	                "Controll_horizontale Achse_DB".Position := "HMI_Steuerung_DB".Inkrement_relativ / 2.0; //Division notwenig wegen anpassung für die Positionskontrolle
+	                "Controll_horizontale Achse_DB".ExecuteMode := TRUE;
+	            END_IF;
+	            
+	            "HMI_Zustand_DB".state := 95;
+	        END_IF;
+	        ;
+	        
+	    95:
+	        IF "HMI_Steuerung_DB".Vel_h > 0 AND "HMI_Steuerung_DB".Vel_v = 0 AND "Controll_horizontale Achse_DB".AxisPosOk = TRUE THEN  //nur horizontale Achse wird verfahren
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "HMI_Zustand_DB".state := 93;
+	        ELSIF "HMI_Steuerung_DB".Vel_h = 0 AND "HMI_Steuerung_DB".Vel_v > 0 AND "Controll_vertikale Achse_DB".AxisPosOk = TRUE THEN //nur vertikale Achse wird verfahren
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "HMI_Zustand_DB".state := 93;
+	        ELSIF "HMI_Steuerung_DB".Vel_h > 0 AND "HMI_Steuerung_DB".Vel_v > 0 AND "Controll_vertikale Achse_DB".AxisPosOk = TRUE AND "Controll_horizontale Achse_DB".AxisPosOk = TRUE THEN    //beide achsen verden verfahren
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "HMI_Zustand_DB".state := 93;
+	        ELSIF "HMI_Steuerung_DB".StopMode = TRUE THEN   //HMI Stop Button wurde betätigt
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_horizontale Achse_DB".IntermediateStop := FALSE;
+	            "Controll_vertikale Achse_DB".IntermediateStop := FALSE;
+	            "HMI_Zustand_DB".state := 93;
+	        ELSIF "Controll_horizontale Achse_DB".AxisEnabled = FALSE OR "Controll_vertikale Achse_DB".AxisEnabled = FALSE THEN //Notaus wurde betätigt
+	            "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	            "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	            "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	            "HMI_Steuerung_DB".EnableSwitch := FALSE;
+	            "HMI_Zustand_DB".state := 96;
+	        END_IF
+	        ;
+	        
+	    96:
+	        IF "Controll_horizontale Achse_DB".AxisError = TRUE OR "Controll_vertikale Achse_DB".AxisError = TRUE THEN
+	            // Textausgabe: Fehler an den Achsen. Kann nicht enabled werden. Bitte Restebutten drücken.
+	            "reset_led" := TRUE;
+	            "Controll_horizontale Achse_DB".AckError := "reset";
+	            "Controll_vertikale Achse_DB".AckError := "reset";
+	        ELSE
+	            "reset_led" := FALSE;
+	            "HMI_Zustand_DB".state := 99;
+	        END_IF
+	        ;
+	    99:
+	        "Controll_horizontale Achse_DB".IntermediateStop := TRUE;
+	        "Controll_vertikale Achse_DB".IntermediateStop := TRUE;
+	        "Controll_vertikale Achse_DB".EnableAxis := FALSE;
+	        "Controll_horizontale Achse_DB".EnableAxis := FALSE;
+	        "Controll_horizontale Achse_DB".ExecuteMode := FALSE;
+	        "Controll_vertikale Achse_DB".ExecuteMode := FALSE;
+	        "HMI_Zustand_DB".state := 0;
+	        ;
+	        ;
+	        (*
+	            20: //Einschubachse einfahren
+	            "MC_POWER_DB"(Axis := "PosControl_Einschubachse",
+	                          Enable := "taste_gruen",
+	                          StartMode := 1,
+	                          StopMode := 0);
+	            
+	            "MC_MOVEJOG_DB"(Axis:="PosControl_Einschubachse",
+	                            JogForward:=FALSE,
+	                            JogBackward:= NOT "di_einschubachse_ref",
+	                            PositionControlled:=TRUE,
+	                            Velocity:=50,
+	                            Acceleration:=200,
+	                            Deceleration:=3000,
+	                            Error=>"Error_z",
+	                            ErrorId=>"ErrorID_z");
+	            
+	            IF "di_einschubachse_ref"=TRUE THEN
+	                "state" := 21;
+	            END_IF;
+	            ;
+	        21: //einschubachse referenzieren
+	            "MC_HOME_DB"(Axis:="PosControl_Einschubachse",
+	                         Execute:="taste_gruen",
+	                         Position:=0,
+	                         Mode:=0,
+	                         ReferenceMarkPosition=>"ActPos_z",
+	                         Done=>"AxisRef_z",
+	                         Error=>"Error_z",
+	                         ErrorId=>"ErrorID_z");
+	            
+	            
+	            ;
+	        ELSE  // Statement section ELSE*)
+	        ;
+	END_CASE;
+	"Controll_vertikale Achse_DB"();
+	"Controll_horizontale Achse_DB"();
+	IF "HMI_Steuerung_DB".Set_Ventil_A = TRUE THEN
+	    "Ventil_A" := TRUE;
+	ELSE
+	    "Ventil_A" := FALSE;
+	END_IF;
+	    
+	    
+	    
+	    
+	    
+	    
+	    
+END_ORGANIZATION_BLOCK
+

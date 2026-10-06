@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V21" />
+  <SW.Blocks.GlobalDB ID="0">
+    <AttributeList>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="Static">
+            <Member Name="state" Datatype="Int" />
+            <Member Name="einschubachse_einfahren_enabled" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Bedingungen für einfahren der Einschubachse sind erfüllt</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="Ref_enabled" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Bedingungen für Referenzierung sind erfüllt</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="jog_mode_enabled" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Bedingungen für jog-mode erfüllt</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="absolut_pos_enabled" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Bedingungen für absolut-pos erfüllt</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="relativ_pos_enabled" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Bedingungen für relativ-pos erfüllt</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="magazinieren_enabled" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Bedingungen für magazinieren erfüllt</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="abholen_enabeld" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Bedingungen für abholen erfüllt</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="ref_mode" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Referenzierung aktiv</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="einschubachse_mode" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Einschubachse einfahren aktiv</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="jog_mode" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">jog-mode aktiv</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="absolut_pos" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">absolut-pos aktiv</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="relativ_pos" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">relativ-pos aktiv</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="magazinieren" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">magazinieren aktiv</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="abholen" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">abholen aktiv</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="AxisRef_all" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Alle Achsen sind referenziert</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="Einschubachse_eingefahren" Datatype="Bool">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Einschubachse ist eingefahren</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="ActPos_absoult_h" Datatype="LReal">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">angepasste Position für horizontae Achse in [cm]</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="ActPos_absoult_v" Datatype="LReal">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">angepasste Position für vertikale Achse in [cm]</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="ActPos_animation_h" Datatype="Int">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Wert für Animatio der horizobtalen Achsen</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="ActPos_animation_v" Datatype="Int">
+              <Comment>
+                <MultiLanguageText Lang="de-DE">Wert für Animation der vertikalen Achsen</MultiLanguageText>
+              </Comment>
+            </Member>
+            <Member Name="AxisEnabled_h" Datatype="Bool" />
+            <Member Name="AxisPosOK_h" Datatype="Bool" />
+            <Member Name="AxisRef_h" Datatype="Bool" />
+            <Member Name="AxisError_h" Datatype="Bool" />
+            <Member Name="Error_h" Datatype="Bool" />
+            <Member Name="ActVel_h" Datatype="LReal" />
+            <Member Name="ActPos_h" Datatype="LReal" />
+            <Member Name="AxisEnabled_v" Datatype="Bool" />
+            <Member Name="AxisPosOK_v" Datatype="Bool" />
+            <Member Name="AxisRef_v" Datatype="Bool" />
+            <Member Name="AxisError_v" Datatype="Bool" />
+            <Member Name="Error_v" Datatype="Bool" />
+            <Member Name="ActVel_v" Datatype="LReal" />
+            <Member Name="ActPos_v" Datatype="LReal" />
+            <Member Name="AxisRef_z" Datatype="Bool" />
+            <Member Name="Error_z" Datatype="Bool" />
+            <Member Name="AxisEnabled_z" Datatype="Bool" />
+            <Member Name="ErrorID_z" Datatype="Word" />
+            <Member Name="ActVel_z" Datatype="LReal" />
+            <Member Name="ActPos_z" Datatype="LReal" />
+          </Section>
+        </Sections>
+      </Interface>
+      <MemoryLayout>Optimized</MemoryLayout>
+      <MemoryReserve>100</MemoryReserve>
+      <Name>HMI_Zustand_DB</Name>
+      <Namespace />
+      <Number>6</Number>
+      <ProgrammingLanguage>DB</ProgrammingLanguage>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <MultilingualText ID="3" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.GlobalDB>
+</Document>

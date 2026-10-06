@@ -1,0 +1,100 @@
+﻿FUNCTION_BLOCK "Signalläuchte"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR 
+      blink_start : Bool;
+      state : Int;
+   END_VAR
+
+   VAR CONSTANT 
+      Blink_Time : Time := T#500ms;
+   END_VAR
+
+
+BEGIN
+	IF "Controll_horizontale Achse_DB".AxisEnabled = TRUE AND "Controll_vertikale Achse_DB".AxisEnabled = TRUE  AND (ABS("Controll_horizontale Achse_DB".ActVelocity) < 2.0 AND ABS("Controll_vertikale Achse_DB".ActVelocity) < 2.0) THEN
+	    //Leutet grün wenn Achen enabled sind
+	    #state := 10;
+	ELSIF "Controll_horizontale Achse_DB".AxisError = TRUE OR "Controll_vertikale Achse_DB".AxisError = TRUE THEN
+	    //Leuchtet rot wenn Achsen Error haben
+	    #state := 20;
+	ELSIF "Controll_horizontale Achse_DB".AxisRef = TRUE AND "Controll_vertikale Achse_DB".AxisRef = TRUE AND ABS("Controll_horizontale Achse_DB".ActVelocity) > 2.0 OR ABS("Controll_vertikale Achse_DB".ActVelocity) > 2.0 THEN
+	    //Blinkt grün wenn die Achsen verfahren
+	    "LED_Blink_1s".IN := FALSE;
+	    IF "LED_grün" = FALSE THEN
+	        #state := 30;   //LED einschalten
+	    ELSIF "LED_grün" = TRUE THEN
+	        #state := 31;   //LED ausschalten
+	    END_IF;
+	ELSIF ("Controll_horizontale Achse_DB".AxisRef = FALSE OR "Controll_vertikale Achse_DB".AxisRef = FALSE) AND (ABS("Controll_horizontale Achse_DB".ActVelocity) > 2.0 OR ABS("Controll_vertikale Achse_DB".ActVelocity) > 2.0) THEN
+	    //Blink gelb wenn die Achsen referenzieren
+	    "LED_Blink_1s".IN := FALSE;
+	    IF "LED_gelb" = FALSE THEN
+	        #state := 40;   //LED einschalten
+	    ELSIF "LED_gelb" = TRUE THEN
+	        #state := 41;   //LED ausschalten
+	    END_IF;
+	ELSE
+	    //Leuchtet gelb wenn auf Befehel gewartet wird
+	    #state := 99;
+	END_IF;
+	
+	CASE #state OF
+	    10: //Achsen enabled
+	        "LED_grün" := TRUE;
+	        "LED_gelb" := FALSE;
+	        "LED_rot" := FALSE;
+	        ;
+	    20: //Achsen Error
+	        "LED_grün" := FALSE;
+	        "LED_gelb" := FALSE;
+	        "LED_rot" := TRUE;
+	        ;
+	
+	    30:  //30-31 Achsen verfahren
+	        //LED einschalten
+	        "LED_Blink_1s".TP(IN := TRUE,
+	                          PT := #Blink_Time);
+	        
+	        IF "LED_Blink_1s".ET = #Blink_Time THEN
+	            "LED_grün" := TRUE;
+	        END_IF
+	        ;
+	        
+	    31: //LED auschalten
+	        "LED_Blink_1s".TP(IN := TRUE,
+	                          PT := #Blink_Time);
+	        
+	        IF "LED_Blink_1s".ET = #Blink_Time THEN
+	            "LED_grün" := FALSE;
+	        END_IF
+	        ;
+	        
+	        
+	    40:  //40-41 Achsen referenzieren
+	        //LED einschalten
+	        "LED_Blink_1s".TP(IN := TRUE,
+	                          PT := #Blink_Time);
+	        
+	        IF "LED_Blink_1s".ET = #Blink_Time THEN
+	            "LED_gelb" := TRUE;
+	        END_IF
+	        ;
+	        
+	    41: //LED auschalten
+	        "LED_Blink_1s".TP(IN := TRUE,
+	                          PT := #Blink_Time);
+	        
+	        IF "LED_Blink_1s".ET = #Blink_Time THEN
+	            "LED_gelb" := FALSE;
+	        END_IF
+	        ;
+	            
+	    99: //Anlage an - Normalzustand
+	    "LED_grün" := FALSE;
+	    "LED_gelb" := TRUE;
+	    "LED_rot" := FALSE;
+	    ;
+	END_CASE;
+END_FUNCTION_BLOCK
+

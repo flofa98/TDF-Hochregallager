@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V21" />
+  <SW.Blocks.InstanceDB ID="0">
+    <AttributeList>
+      <InstanceOfName>Controll_horizontale Achse</InstanceOfName>
+      <InstanceOfType>FB</InstanceOfType>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="Input">
+            <Member Name="ModePos" Datatype="Int" />
+            <Member Name="EnableAxis" Datatype="Bool" />
+            <Member Name="IntermediateStop" Datatype="Bool" />
+            <Member Name="AckError" Datatype="Bool" />
+            <Member Name="ExecuteMode" Datatype="Bool" />
+            <Member Name="Jog1" Datatype="Bool" />
+            <Member Name="Jog2" Datatype="Bool" />
+            <Member Name="Negative" Datatype="Bool" />
+            <Member Name="Positive" Datatype="Bool" />
+            <Member Name="Position" Datatype="LReal" />
+            <Member Name="Velocity" Datatype="LReal" />
+          </Section>
+          <Section Name="Output">
+            <Member Name="AxisEnabled" Datatype="Bool" />
+            <Member Name="AxisPosOk" Datatype="Bool" />
+            <Member Name="AxisRef" Datatype="Bool" />
+            <Member Name="AxisError" Datatype="Bool" />
+            <Member Name="Error" Datatype="Bool" />
+            <Member Name="ActVelocity" Datatype="LReal" />
+            <Member Name="ActPosition" Datatype="LReal" />
+          </Section>
+          <Section Name="InOut" />
+          <Section Name="Static">
+            <Member Name="Enable_XYMovement" Datatype="Bool" />
+            <Member Name="AxisPos_max" Datatype="LReal">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">false</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">false</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="AxisPos_min" Datatype="LReal">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">false</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">false</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+          </Section>
+        </Sections>
+      </Interface>
+      <Name>Controll_horizontale Achse_DB</Name>
+      <Namespace />
+      <Number>5</Number>
+      <ProgrammingLanguage>DB</ProgrammingLanguage>
+    </AttributeList>
+    <ObjectList>
+      <MultilingualText ID="1" CompositionName="Comment">
+        <ObjectList>
+          <MultilingualTextItem ID="2" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+      <MultilingualText ID="3" CompositionName="Title">
+        <ObjectList>
+          <MultilingualTextItem ID="4" CompositionName="Items">
+            <AttributeList>
+              <Culture>de-DE</Culture>
+              <Text />
+            </AttributeList>
+          </MultilingualTextItem>
+        </ObjectList>
+      </MultilingualText>
+    </ObjectList>
+  </SW.Blocks.InstanceDB>
+</Document>

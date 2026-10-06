@@ -1,0 +1,60 @@
+﻿FUNCTION_BLOCK "Controll_horizontale Achse"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      ModePos : Int;
+      EnableAxis : Bool;
+      IntermediateStop : Bool;
+      AckError : Bool;
+      ExecuteMode : Bool;
+      Jog1 : Bool;
+      Jog2 : Bool;
+      Negative : Bool;
+      Positive : Bool;
+      Position : LReal;
+      Velocity : LReal;
+   END_VAR
+
+   VAR_OUTPUT 
+      AxisEnabled : Bool;
+      AxisPosOk : Bool;
+      AxisRef : Bool;
+      AxisError : Bool;
+      Error : Bool;
+      ActVelocity : LReal;
+      ActPosition : LReal;
+   END_VAR
+
+   VAR 
+      Enable_XYMovement : Bool;
+      AxisPos_max { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : LReal := 300.183;   // gemessener maximaler Achsen Verfahrensweg von Referezpunkt
+      AxisPos_min { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : LReal := -5.261;   // gemessener minimaler Achsen Verfahrensweg von Referezpunkt
+   END_VAR
+
+
+BEGIN
+	#Enable_XYMovement := NOT("di_EnableXYMovement") AND #EnableAxis;
+	
+	"PosControl_horizontale Achse"(ModePos:=#ModePos,
+	                               EnableAxis:=#Enable_XYMovement,
+	                               IntermediateStop:=#IntermediateStop,
+	                               Positive:=#Positive,
+	                               Negative:=#Negative,
+	                               Jog1:=#Jog1,
+	                               Jog2:=#Jog2,
+	                               AckError:=#AckError,
+	                               ExecuteMode:=#ExecuteMode,
+	                               Position:=#Position,
+	                               Velocity:=#Velocity,
+	                               AxisEnabled=>#AxisEnabled,
+	                               AxisPosOk=>#AxisPosOk,
+	                               AxisRef=>#AxisRef,
+	                               AxisError=>#AxisError,
+	                               ActVelocity=>#ActVelocity,
+	                               ActPosition=>#ActPosition,
+	                               Error=>#Error);
+	
+	"PosControl_horizontale Achse".ConfigEPos.%X6 := "di_axis_ref_h";
+	
+END_FUNCTION_BLOCK
+
